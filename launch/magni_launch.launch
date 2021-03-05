@@ -1,0 +1,67 @@
+<launch>
+    <arg name="simulation" default="true"/>
+    <arg name="visualization" default="true"/> <!-- start Rviz with predefined configuration? -->
+    <arg name="mapping" default="false"/> <!-- start Rviz with predefined configuration? -->
+    <arg name="navigation" default="false"/> <!-- start Rviz with predefined configuration? -->
+
+    <arg name="raspicam_mount" default="forward"/>
+    <arg name="sonars_installed" default="false"/>
+    <arg name="laser_enabled" default="true"/>
+
+    <!-- load empty world -->
+    <arg name="gui" default="false"/>
+    <arg name="headless" default="false" />
+    <arg name="debug" default="false" />
+    <arg name="paused" default="false"/>
+    <arg name="use_sim_time" default="true"/>
+
+    <include file="$(find gazebo_ros)/launch/empty_world.launch" if="$(arg simulation)">
+        <arg name="gui" value="$(arg gui)" />
+        <!-- <arg name="world_name" value="$(find magni_gazebo)/worlds/clearpath_playpen.world"/> -->
+        <arg name="world_name" value="$(find magni_launch)/worlds/follow_me5.world"/>
+        <arg name="headless" value="$(arg headless)" />
+        <arg name="paused" value="$(arg paused)" />
+        <arg name="debug" value="$(arg debug)" />
+        <arg name="use_sim_time" value="true" />
+    </include>
+
+    <!-- start robot -->
+    <include file="$(find magni_gazebo)/launch/magni.launch">
+        <arg name="raspicam_mount" value="$(arg raspicam_mount)"/>
+        <arg name="sonars_installed" value="$(arg sonars_installed)"/>
+        <arg name="laser_enabled" value="$(arg laser_enabled)" />
+        <arg name="robot_model" value="magni" />
+        <arg name="location_x" value="5" />
+        <arg name="location_y" value="0" />
+    </include>
+
+    <!-- pc2 to lc -->
+    <include file="$(find magni_launch)/launch/pc_ls_node.launch"></include>
+
+    <!-- scan merge, obj extractor -->
+    <include file="$(find magni_launch)/launch/obs_det_node.launch"></include>
+
+    <!-- visualize obs on RVIZ -->
+    <node pkg="magni_launch" type="obj_dist.py" name="obj_dist" output="screen"/>
+
+    <!-- combine both lc (no longer used) -->
+    <!-- <include file="$(find ira_laser_tools)/launch/laserscan_multi_merger.launch"></include> -->
+
+    <!-- start 2nd robot-->
+    <!-- <group ns="magni1">
+        <include file="$(find magni_gazebo)/launch/magni.launch">
+            <arg name="raspicam_mount" value="$(arg raspicam_mount)"/>
+            <arg name="sonars_installed" value="$(arg sonars_installed)"/>
+            <arg name="laser_enabled" value="$(arg laser_enabled)" />
+            <arg name="robot_model" value="magni1" />
+            <arg name="location_x" value="0" />
+            <arg name="location_y" value="0" />
+        </include>
+    </group> -->
+
+    <node pkg="rviz" type="rviz" name="$(anon rviz)" args="-d $(find magni_launch)/rviz/followme.rviz" output="screen"/>
+
+    <!--<node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter">
+        <rosparam command="load" file="$(find dwa_plan)/launch/scan_filtered.yaml" />
+    </node>-->
+</launch>
