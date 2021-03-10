@@ -26,7 +26,7 @@
     </include>
 
     <!-- start robot -->
-    <include file="$(find magni_gazebo)/launch/magni.launch">
+    <include file="$(find magni_gazebo)/launch/magni.launch" if="$(arg simulation)">
         <arg name="raspicam_mount" value="$(arg raspicam_mount)"/>
         <arg name="sonars_installed" value="$(arg sonars_installed)"/>
         <arg name="laser_enabled" value="$(arg laser_enabled)" />
@@ -42,7 +42,7 @@
     <include file="$(find magni_launch)/launch/obs_det_node.launch"></include>
 
     <!-- visualize obs on RVIZ -->
-    <node pkg="magni_launch" type="obj_dist.py" name="obj_dist" output="screen"/>
+    <!-- <node pkg="magni_launch" type="obj_dist.py" name="obj_dist" output="screen"/> -->
 
     <!-- combine both lc (no longer used) -->
     <!-- <include file="$(find ira_laser_tools)/launch/laserscan_multi_merger.launch"></include> -->
