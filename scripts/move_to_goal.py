@@ -5,6 +5,9 @@ import actionlib
 import sys
 import math
 import json
+from tf import TransformListener
+import tf
+import math
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal, MoveBaseResult, MoveBaseFeedback
 
 
@@ -12,12 +15,23 @@ class MoveBaseClient:
     def __init__(self):
         self.client = actionlib.SimpleActionClient('/move_base', MoveBaseAction)
         self.client.wait_for_server()
+        self.distance_tolerance = 2
+        self.odom_frame_id = 'map'
+        self.base_frame_id = 'base_footprint'
+        self.tf = TransformListener()
+        self.listener = tf.TransformListener()
         self.feedback_wait = 10   # wait n times before printing
         self.feedback_count = self.feedback_wait   # print first time then set to zero
 
     def send_goal(self, goal):
         self.client.send_goal(goal, done_cb=self.done_cb, feedback_cb=self.feedback_cb)
-        self.client.wait_for_result()
+        # self.client.wait_for_result()
+        distance = 10
+        while(distance > self.distance_tolerance):
+            # now = rospy.Time()
+            self.listener.waitForTransform(self.odom_frame_id, self.base_frame_id, rospy.Time(), rospy.Duration(4.0))
+            trans,rot = self.listener.lookupTransform(self.odom_frame_id,self.base_frame_id, rospy.Time(0))
+            distance = math.sqrt(pow(goal.target_pose.pose.position.x-trans[0],2)+pow(goal.target_pose.pose.position.y-trans[1],2))
         rospy.loginfo('[Result] State: %d' %(self.client.get_state()))
 
     def feedback_cb(self, feedback):
@@ -30,11 +44,14 @@ class MoveBaseClient:
     
     def cancel_goal(self):
         self.client.cancel_all_goals()
-        print('goal cancelled')
+        # print('goal cancelled')
 
     def done_cb(self, status, result):
         rospy.loginfo("Goal reached")
         rospy.loginfo('Status is: ' + str(status))
+
+    # def shutdown(self):
+    #     self.client.cancel_all_goals()
 
 
 class MoveBaseGoalCreator:
@@ -75,9 +92,12 @@ if __name__ == "__main__":
     goals = [MoveBaseGoalCreator.create_2D_goal(goals_pose[pose]) for pose in poses]    
     for goal in goals:
         client.send_goal(goal)
+    # print("send all goals")
 
     if rospy.is_shutdown():
         client.cancel_goal()
+    
+    # rospy.on_shutdown(client.cancel_goal)
 
     # # Uncomment these lines to test goal preemption:
     # time.sleep(3.0)
