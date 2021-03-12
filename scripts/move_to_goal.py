@@ -27,7 +27,10 @@ class MoveBaseClient:
             self.feedback_count = 0   # reset
         else:   # do not print
             self.feedback_count += 1
-        
+    
+    def cancel_goal(self):
+        self.client.cancel_all_goals()
+        print('goal cancelled')
 
     def done_cb(self, status, result):
         rospy.loginfo("Goal reached")
@@ -46,16 +49,12 @@ class MoveBaseGoalCreator:
         goal.target_pose.pose.orientation.w = math.cos(pose_2D["w"]/2)
         return goal
 
-def my_node(arg1):
-    print("{}".format(arg1))
-
 if __name__ == "__main__":
 
-    if len(sys.argv) < 2:
-        print("usage: my_node.py arg1")
+    if len(sys.argv) < 1:
+        print("usage: my_node.py arg1 arg2 **")
     else:
-        my_node(sys.argv[1])
-
+        print("start")
 
     # # initializes the action client node
     rospy.init_node('move_base_action_client')
@@ -66,15 +65,19 @@ if __name__ == "__main__":
     with open(goals_json, "r") as f:
         goals_pose = json.load(f)
 
-    g_pose = goals_pose[sys.argv[1]]
-    goal = MoveBaseGoalCreator.create_2D_goal(g_pose)
+    # g_pose = goals_pose[sys.argv[1]]
+    # goal = MoveBaseGoalCreator.create_2D_goal(g_pose)
+    # client.send_goal(goal)
 
-    client.send_goal(goal)
+    l_len = len(sys.argv)
+    poses = sys.argv[1:l_len] #ignore first element
+    
+    goals = [MoveBaseGoalCreator.create_2D_goal(goals_pose[pose]) for pose in poses]    
+    for goal in goals:
+        client.send_goal(goal)
 
-    # goals = [MoveBaseGoalCreator.create_2D_goal(pose) for pose in goals_points.values()]    
-    # for goal in goals:
-    #     client.send_goal(goal)
-    #     time.sleep(3.0)
+    if rospy.is_shutdown():
+        client.cancel_goal()
 
     # # Uncomment these lines to test goal preemption:
     # time.sleep(3.0)
